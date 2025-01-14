@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="jp">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Human Rocket Game</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: black;
+      }
+      canvas {
+        border: 1px solid white;
+        display: none; /* 初期状態で非表示にする */
+      }
+      button {
+        position: absolute;
+        top: 20px;
+        background-color: #333;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        cursor: pointer;
+        font-size: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="startButton">ゲームスタート</button>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+      // -------------------- ゲームの初期設定 --------------------
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+
+      // -------------------- 画像のロード --------------------
+      const background = new Image();
+      const playerImg = new Image();
+      const bulletImages = [
+        'bullet.png',
+        'bullet1.png',
+        'bullet2.png',
+        'bullet3.png',
+      ];
+      const enemyImages = ['enemy.png', 'enemy1.png', 'enemy2.png'];
+
+      background.src = 'background.png';
+      playerImg.src = 'player.png';
+
+      // -------------------- ゲームの状態 --------------------
+      let playerX = 370,
+        playerY = 480;
+      let playerX_change = 0; // プレイヤーの移動量
+      let bulletX = 0,
+        bulletY = 480,
+        bullet_state = 'ready';
+      let bulletImg = new Image();
+      bulletImg.src = bulletImages[0];
+      let bulletY_change = 1; // 弾の移動速度（後で変更）
+      let enemyX = Math.random() * (canvas.width - 64),
+        enemyY = Math.random() * 100 + 50;
+      let enemy_speed = Math.random() * 6;
+      let enemyImg = new Image();
+      enemyImg.src =
+        enemyImages[Math.floor(Math.random() * enemyImages.length)];
+      let enemyX_change = 0.35;
+      let enemyY_change = 40;
+      let score_value = 0;
+      let bullet_change_counter = 0;
+      const image_change_interval = 180; // 画像変更のインターバル（180フレーム）
+      let gameOverFlag = false; // ゲームオーバーフラグ
+
+      // -------------------- 音楽設定 --------------------
+      const backgroundMusic = new Audio('background.wav');
+      backgroundMusic.loop = true;
+
+      // 音楽を再生する関数
+      function startMusic() {
+        backgroundMusic.play();
+        document.getElementById("startButton").style.display = 'none'; // スタートボタン非表示
+        canvas.style.display = 'block'; // ゲーム画面表示
+        gameLoop(); // ゲームループ開始
+      }
+
+      // -------------------- 弾の発射音 --------------------
+      const bullet_sound = new Audio('laser.wav');
+
+      // -------------------- スコア表示 --------------------
+      function drawScore() {
+        ctx.font = '32px Arial';
+        ctx.fillStyle = 'white';
+        ctx.fillText(`Score : ${score_value}`, 20, 50);
+      }
+
+      // -------------------- ゲームオーバー処理 --------------------
+      function gameOver() {
+        gameOverFlag = true;
+        ctx.font = '64px Arial';
+        ctx.fillStyle = 'white';
+        ctx.fillText('GAME OVER', 250, 250);
+        ctx.font = '32px Arial';
+        ctx.fillText('Press F5 or refresh the page to restart.', 150, 300);
+      }
+
+      // -------------------- 弾の移動処理 --------------------
+      function moveBullet() {
+        if (bullet_state === 'fire') {
+          ctx.drawImage(bulletImg, bulletX + 16, bulletY + 10);
+          bulletY -= bulletY_change * 4; // 弾の速さを4倍に変更
+          if (bulletY <= 0) {
+            bulletY = 480;
+            bullet_state = 'ready';
+          }
+
+          bullet_change_counter++;
+          if (bullet_change_counter >= image_change_interval) {
+            bulletImg.src =
+              bulletImages[Math.floor(Math.random() * bulletImages.length)];
+            bullet_change_counter = 0;
+          }
+        }
+      }
+
+      // -------------------- プレイヤー移動処理 --------------------
+      function movePlayer() {
+        playerX += playerX_change * 3; // プレイヤーの移動速度を3倍に変更
+        if (playerX <= 0) playerX = 0;
+        if (playerX >= canvas.width - 64) playerX = canvas.width - 64; // プレイヤーの位置をキャンバスの範囲内に制限
+      }
+
+      // -------------------- 敵の移動処理 --------------------
+      function moveEnemy() {
+        enemyX += enemyX_change * enemy_speed * 3; // 敵の移動速度を3倍に変更
+        if (enemyX <= 0) {
+          enemyX_change = 0.35;
+          enemyY += enemyY_change * 3; // 敵の縦移動速度も3倍に変更
+        } else if (enemyX >= canvas.width - 64) {
+          enemyX_change = -0.35;
+          enemyY += enemyY_change * 3; // 敵の縦移動速度も3倍に変更
+        }
+
+        // 敵がプレイヤーより下に行った場合
+        if (enemyY > playerY) {
+          gameOver();
+        }
+      }
+
+      // -------------------- 衝突判定 --------------------
+      function collisionDetection() {
+        const distance = Math.sqrt(
+          Math.pow(enemyX - playerX, 2) + Math.pow(enemyY - playerY, 2)
+        );
+        if (distance < 30) {
+          // プレイヤーと敵が当たった場合
+          gameOver();
+        }
+
+        const distance_bullet = Math.sqrt(
+          Math.pow(enemyX - bulletX, 2) + Math.pow(enemyY - bulletY, 2)
+        );
+        if (distance_bullet < 27) {
+          // 敵と弾が当たった場合
+          bulletY = 480;
+          bullet_state = 'ready';
+          score_value++;
+          enemyX = Math.random() * (canvas.width - 64);
+          enemyY = Math.random() * 100 + 50;
+          enemyImg.src =
+            enemyImages[Math.floor(Math.random() * enemyImages.length)];
+          enemy_speed = Math.random() * 6;
+        }
+      }
+
+      // -------------------- ゲームループ --------------------
+      function gameLoop() {
+        if (gameOverFlag) return; // ゲームオーバー後にゲームループを停止
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 背景画像のリサイズ
+        ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+
+        movePlayer();
+        moveBullet();
+        moveEnemy();
+        collisionDetection();
+        drawScore();
+
+        ctx.drawImage(playerImg, playerX, playerY);
+        ctx.drawImage(enemyImg, enemyX, enemyY);
+
+        requestAnimationFrame(gameLoop);
+      }
+
+      // -------------------- キー入力 --------------------
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowLeft') {
+          playerX_change = -1; // 左に動く
+        }
+        if (event.key === 'ArrowRight') {
+          playerX_change = 1; // 右に動く
+        }
+        if (event.key === ' ') {
+          if (bullet_state === 'ready') {
+            bulletX = playerX;
+            bullet_state = 'fire';
+            bullet_sound.play(); // 弾の音を確実に再生
+          }
+        }
+      });
+
+      document.addEventListener('keyup', (event) => {
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+          playerX_change = 0; // 移動を停止
+        }
+      });
+
+      // -------------------- ゲーム開始 --------------------
+      document.getElementById('startButton').addEventListener('click', startMusic);
+    </script>
+  </body>
+</html>
