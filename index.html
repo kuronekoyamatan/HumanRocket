@@ -19,6 +19,11 @@
         border: 1px solid white;
         display: none; /* 初期状態で非表示にする */
       }
+      .text {
+        font-size: 9px;
+        text-align: center;
+        margin-top: 0px;
+      }
       button {
         position: absolute;
         top: 100px;
@@ -39,11 +44,14 @@
   </head>
   <body>
     <!-- 操作説明 -->
+    <br /><br />
     <div id="instruction">
-      <PC専用ゲームです。>ゲーム開始前に操作方法を確認してください。<br>PC専用ゲームです。</p>
+      <p>PC専用ゲームです。<br />ゲーム開始前に操作方法を確認してください。</p>
       <p><strong>左移動:</strong> 左矢印キー</p>
       <p><strong>右移動:</strong> 右矢印キー</p>
       <p><strong>弾発射:</strong> スペースキー</p>
+      <br />
+      <p class="text">Pythonのゲーム開発ライブラリPygame使用</p>
     </div>
     <button id="startButton">ゲームスタート</button>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
@@ -96,8 +104,8 @@
       // 音楽を再生する関数
       function startMusic() {
         backgroundMusic.play();
-        document.getElementById("startButton").style.display = 'none'; // スタートボタン非表示
-        document.getElementById("instruction").style.display = 'none'; // 操作説明非表示
+        document.getElementById('startButton').style.display = 'none'; // スタートボタン非表示
+        document.getElementById('instruction').style.display = 'none'; // 操作説明非表示
         canvas.style.display = 'block'; // ゲーム画面表示
         gameLoop(); // ゲームループ開始
       }
@@ -236,7 +244,9 @@
       });
 
       // -------------------- ゲーム開始 --------------------
-      document.getElementById('startButton').addEventListener('click', startMusic);
+      document
+        .getElementById('startButton')
+        .addEventListener('click', startMusic);
     </script>
   </body>
 </html>
